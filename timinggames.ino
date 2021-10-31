@@ -31,14 +31,14 @@ void setup()
 void loop() 
 {
   display.clearDisplay();
-  display.setTextSize(1);                     //Set the display text size
-  display.setTextColor(SSD1306_WHITE);        //Draw white text
-  display.setCursor(25,0);                    //Start at top-left corner, 25 pixels in
-  display.println(F("Press To Play"));        //Display text on screen
-  display.display();                          //Update display
-  if (digitalRead(pinButton) == LOW)          //If button to start game is pressed
+  display.setTextSize(1);                     //표시 텍스트 크기 설정
+  display.setTextColor(SSD1306_WHITE);        //흰색 텍스트 그리기
+  display.setCursor(25,0);                    //왼쪽 상단 모서리에서 시작, 25픽셀
+  display.println(F("Press To Play"));        //화면에 텍스트 표시
+  display.display();                          //표시 업데이트
+  if (digitalRead(pinButton) == LOW)          //게임 시작 버튼을 누르면
   {
-      display.setCursor(40,10);               //Display "Ready" countdown with 3 sequential dots
+      display.setCursor(40,10);               //3개의 순차적 점으로 "Ready" 카운트다운 표시
       display.print(F("Ready"));
       display.display();
       delay(1000);
@@ -50,26 +50,26 @@ void loop()
       delay(1000);
       display.print(F("."));
       display.display();
-      int delayTime = random(2000,7000);      //Wait a random amount of time between 2s and 7s so that users can't guess the start time
-      delay(delayTime);                       //Delay the random amount of time
-      digitalWrite(pinLED, HIGH);             //Light up the LED
-      startTime = millis();                   //Record the start time
-      while (digitalRead(pinButton) == HIGH)  //Wait for the user to push the button
+      int delayTime = random(2000,7000);      //사용자가 시작 시간을 추측할 수 없도록 2초에서 7초 사이의 시간 동안 무작위로 기다립니다.
+      delay(delayTime);                       //임의 시간 지연
+      digitalWrite(pinLED, HIGH);             //LED를 켜십시오.
+      startTime = millis();                   //시작 시간 기록
+      while (digitalRead(pinButton) == HIGH)  //사용자가 버튼을 누를 때까지 기다립니다.
       {
         
       }
-      endTime = millis();                     //Record the button push time
-      digitalWrite(pinLED, LOW);              //Turn off the LED
-      int totalTime = endTime - startTime;    //Calculate the total response time
-      display.clearDisplay();                 //Display the results
-      if (totalTime <= 20)                    //Check for cheating by holding the button down
+      endTime = millis();                     //버튼 누름 시간을 기록합니다.
+      digitalWrite(pinLED, LOW);              //LED 끄기
+      int totalTime = endTime - startTime;    //총 응답 시간 계산
+      display.clearDisplay();                 //결과 표시
+      if (totalTime <= 20)                    //버튼을 눌러 부정행위를 확인합니다.
       {
         display.setCursor(20,0);
         display.println(F("Don't Hold The"));
         display.setCursor(20,10);
         display.print(F("Button Down"));
       }
-      else                                    //Display the results
+      else                                    //결과 표시
       {
         display.setCursor(30,0);
         display.println(F("Your Time:"));
@@ -78,7 +78,7 @@ void loop()
         display.print(F("ms"));
       }
       display.display();
-      delay(5000);                             //Wait 5 seconds on results before restarting
+      delay(5000);                             //다시 시작하기 전에 결과를 5초 기다리십시오.
   }
   delay(100);
 }
