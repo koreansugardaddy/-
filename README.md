@@ -2,29 +2,29 @@
 //Michael Klements
 //19 April 2020
 
-#include <SPI.h>                //Include the libraries for the display
+#include <SPI.h>                //표시할 라이브러리 포함
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define SCREEN_WIDTH 128        //OLED display width, in pixels
-#define SCREEN_HEIGHT 32        //OLED display height, in pixels
+#define SCREEN_WIDTH 128        //OLED 디스플레이 너비(픽셀)
+#define SCREEN_HEIGHT 32        //OLED 디스플레이 높이(픽셀)
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);   //Create the display object
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);   //화면표시 객체를 작성합니다.
 
-int pinButton = 14;             //Define the pins for the Button & LED
+int pinButton = 14;             //버튼 & LED의 핀 정의
 int pinLED = 15;
 
-int startTime = 0;              //Define variables for the start and end time
+int startTime = 0;              //시작 및 종료 시간에 대한 변수 정의
 int endTime = 0;
 
 void setup() 
 {
-  pinMode (pinLED, OUTPUT);     //Assign the LED & button pins
+  pinMode (pinLED, OUTPUT);     //LED & 버튼 핀 할당
   pinMode (pinButton, INPUT);
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) //Start communication with display, address 0x3C for 128x32
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) //디스플레이와 통신 시작, 128x32의 주소 0x3C
   { 
-    for(;;);                    //Don't proceed, loop forever if display communication fails
+    for(;;);                    //진행 안 함, 디스플레이 통신이 실패할 경우 영구적으로 반복
   }
 }
 
