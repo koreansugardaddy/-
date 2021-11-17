@@ -246,6 +246,101 @@ void tampil() {
         lcd.setCursor(45,30);
         lcd.print(totalTime);
         lcd.print(F("ms"));
+        {
+          if(totalTime>=0 && totalTime<=50)
+              {
+                lcd.setCursor(55,40);
+                lcd.print("5%");
+               }
+          else if(totalTime>=26 && totalTime<=50)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("10%");
+          }
+          else if(totalTime>=51 && totalTime<=75)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("15%");
+          }
+          else if(totalTime>=76 && totalTime<=100)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("20%");
+          }
+          else if(totalTime>=101 && totalTime<=125)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("25%");
+          }
+          else if(totalTime>=126 && totalTime<=150)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("30%");
+          }else if(totalTime>=151 && totalTime<=175)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("35%");
+          }else if(totalTime>=176 && totalTime<=200)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("40%");
+          }
+          else if(totalTime>=201 && totalTime<=225)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("45%");
+          }
+          else if(totalTime>=226 && totalTime<=250)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("50%");
+          }
+          else if(totalTime>=251 && totalTime<=275)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("55%");
+          }
+          else if(totalTime>=276 && totalTime<=300)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("60%");
+          }
+          else if(totalTime>=301 && totalTime<=325)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("65%");
+          }
+          else if(totalTime>=326 && totalTime<=350)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("70%");
+          }
+          else if(totalTime>=351 && totalTime<=375)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("75%");
+          }else if(totalTime>=376 && totalTime<=400)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("80%");
+          }else if(totalTime>=401 && totalTime<=425)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("85%");
+          }else if(totalTime>=426 && totalTime<=450)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("90%");
+          }else if(totalTime>=451 && totalTime<=475)
+          {
+            lcd.setCursor(55,40);
+            lcd.print("95%");
+          }else
+          {
+            lcd.setCursor(55,40);
+            lcd.print("100%");
+          }
+        }
       }
       lcd.display();
       delay(5000);                             //다시 시작하기 전에 결과를 5초 기다리십시오.
