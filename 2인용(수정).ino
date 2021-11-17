@@ -1,361 +1,162 @@
-#include <Arduino.h>
-#include <LiquidCrystal.h>
-#include "fade.h"
-#include "serialdebug.h"
-#include "lcdhelper.h"
-#include "shiftregister.h"
-#include "eepromhelper.h"
-const String codeversion = "1.2";
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-#define NUM_USER_BUTTONS 4
-int userButtonReadPins[NUM_USER_BUTTONS];
-const int NOTE_FREQUENCY = 262;
-//states
-const int STATE_BOOTED_UP = 0;
-const int STATE_WAITING_TO_START = 10;
-const int STATE_COUNTDOWN_TO_GO = 20;
-const int STATE_DISQUALIFIED_PLAYER = 30;
-const int STATE_WAITING_FOR_WINNERS = 40;
-const int STATE_GAMEOVER = 60;
-//go trigger setting
-enum GoTrigger {LIGHT,SOUND,BOTH};
-//records
-enum Records {NONE, SINCEBOOT, EEPROMSAVE};
-//debug flag
-const boolean DEBUG_SERIAL = true;
-//analog user button inputs.  we are just using them for digital reads
-const int PIN_USER1BUTTON = A0;
-const int PIN_USER2BUTTON = A1;
-const int PIN_USER3BUTTON = A2;
-const int PIN_USER4BUTTON = A3;
-//digital input buttons/switches
-const int PIN_STARTBUTTON = A5;
-const int PIN_GOTRIGGERCYCLE = A4;
-//output pins
-const int PIN_WAITFORIT_LED= 6;
-const int PIN_GO_LED= 9;
-//variables that persist across games
-GoTrigger goTriggerEnum = BOTH;
-Records currentRecordToShow = NONE;
-long lastTimeMillisForDisplayChangeRotation = 0;
-long fastestTimeSinceBoot = -1;
-int playerPositionHoldingFastestTime = -1;
-//current state we are in
-int state = STATE_BOOTED_UP;
-//per game variables for timers and timing events
-boolean disqualifiedUsers[NUM_USER_BUTTONS];
-long winningUserTimes[NUM_USER_BUTTONS] = {0,0,0,0};
-int cumulativeScores[NUM_USER_BUTTONS] = {0,0,0,0};
-int orderedRunnerUpTimesBehindWinner[NUM_USER_BUTTONS-1] = {0,0,0};
-String orderedRunnerUpNames[NUM_USER_BUTTONS-1] = {"","",""};
-int runnerUpPosition = 0;
-int randomizedStartDelayInMillis = 0;
-int numberOfFinishers = 0;
-long goTimeMillis = 0;
-long winnerTimeMillis = 0;
-long gameOverTimeMillis = 0;
-//timing constants
-const long MAX_WAIT_FOR_WINNERS_MILLIS = 3000;
-const long SHOW_EACH_USER_SCORE_TIME_MILLIS = 2000;
-const long SHOW_EACH_RECORD_TIME_MILLIS = 2000;
-//const long SHOW_SCORES_GAMEOVER_TIME = 4000;
-//eeprom saved values
-struct config_t
+#include <SPI.h>  
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+
+
+Adafruit_SSD1306 lcd(128, 64, &Wire, 4);
+
+const int switchPin1 =6 ;//Player 1 button 
+const int switchPin2 =7 ;//Player 2 button 
+
+int switchStart =5 ;//Start button 
+int ledPin =9 ;//Game start LED 
+int ledPinP1 =10 ;//Player 1 win indicator 
+int ledPinP2 =11 ;//Player 2 win indicator 
+int buttonStateP1 =0 ;//Player 1 button tracking 
+int buttonStateP2 =0 ;//Player 2 button tracking 
+int lastButtonStateP1 =0 ;// Player 1 last button state (used to detect a button press)
+int lastButtonStateP2 =0 ;// Player 2 last button state (used to detect a button press)
+int scoreP1 =0 ;// Player 1 score tracking 
+int scoreP2 =0 ;// Player 2 score tracking 
+
+boolean bothDone =false ;// Used to see if both players have pressed their buttons 
+boolean gameOn =false ;// Keep track if the game is going on or not 
+boolean startButtonState =LOW ;// Start button initalization 
+boolean p1Done =false ;// Keep track of Player 1's button press 
+boolean p2Done =false ;// Keep track of Player 1's button press 
+boolean welcomeMsg =false ;// Keep track if the welcome message has already been displayed 
+
+long randomTime ;// Hold the random time between the start of the game and the indicator light coming back on 
+long startTime ;// When did the game start 
+long endTimeP1 ;// When did Player 1 press their button 
+long endTimeP2 ;// When did Player 2 press their button 
+
+float finalTimeP1 ;// Time elapsed between start of the game and Player 1 pressing their button 
+float finalTimeP2 ;// Time elapsed between start of the game and Player 2 pressing their button 
+float winningTime ;// Time between the winning and losing player's time 
+
+void setup ()
 {
-    int fastestTimeInEeprom;
-    int longestChainInEeprom;
-} eepromsave;
-const int EEPROM_SAVELOCATION = 0;
-void setup() {
-  lcd.begin(16, 2);
-  if (DEBUG_SERIAL) {
-    Serial.begin(9600);
+  Serial.begin(115200);
+  lcd.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  lcd.clearDisplay();
+  pinMode (switchPin1 ,INPUT );
+  pinMode (switchPin2 ,INPUT );
+  pinMode (ledPin ,OUTPUT );// Game start LED 
+  pinMode (ledPinP1 ,OUTPUT );// Player 1 win LED 
+  pinMode (ledPinP2 ,OUTPUT );// Player 1 win LED 
+  Serial .begin (9600 );
+  if(!lcd.begin(SSD1306_SWITCHCAPVCC, 0x3C)) //디스플레이와 통신 시작, 128x32의 주소 0x3C
+  { 
+    for(;;);                    //진행 안 함, 디스플레이 통신이 실패할 경우 영구적으로 반복
   }
-  //output pins, all our digital pins are output other than 0 and 1
-  for (int i = 2; i<= 13; i++) {
-    pinMode(i, OUTPUT);
-  }
-//input pins
-  for (int i = 0; i < NUM_USER_BUTTONS; i++) {
-     pinMode(userButtonReadPins[i], INPUT);
-  }
-  turnOffAllPlayerLights();
-  pinMode(PIN_STARTBUTTON, INPUT);
-  pinMode(PIN_GOTRIGGERCYCLE, INPUT);
-  EEPROM_readAnything(EEPROM_SAVELOCATION, eepromsave);
-  debugSerialPrintStringAndNumber("EEprom saved record: ",eepromsave.fastestTimeInEeprom);
-  doLightAndSoundCheckBootRoutine();
-  transitionToState(STATE_WAITING_TO_START);
 }
-void doLightAndSoundCheckBootRoutine(){
-  setBothLCDLines("Fastest v"+codeversion,"github / plocke",lcd );
-  for (int i = 0; i < NUM_USER_BUTTONS; i++) {
-     turnOnWinLightForPlayer(i);
-     delay(250);
-  }
-  turnOffAllPlayerLights();
-  digitalWrite(PIN_WAITFORIT_LED, HIGH);
-  delay(250);
-  digitalWrite(PIN_WAITFORIT_LED, LOW);
-  digitalWrite(PIN_GO_LED, HIGH);
-  delay(250);
-  digitalWrite(PIN_GO_LED, LOW);
-}
-void setNewRandomStartDelay()
+
+void loop ()
 {
-  randomSeed(millis()+analogRead(A5));
-  randomizedStartDelayInMillis = random(3000, 10000);
-  debugSerialPrintStringAndNumber("start delay: ", randomizedStartDelayInMillis);
+  // Print a welcome message, the current player's score, and set that the welcome message has been displayed 
+  if (welcomeMsg ==false ){
+    lcd.clearDisplay (" ");
+    lcd.clearDisplay ("Press the start button to begin");
+    lcd.clearDisplay ("Scoreboard:");
+    lcd.setCursor(52, 0);
+    lcd.print ("Player 1 - ");
+    lcd..println (scoreP1 );
+    lcd.print ("Player 2 - ");
+    lcd.println (scoreP2 );
+    welcomeMsg =true ;
+  } 
+  startButtonState =digitalRead (switchStart );// Listen for the start button to be pressed 
+  
+  // if the start button has been pressed and there is no game already running, begin the game 
+  if (startButtonState ==HIGH &&gameOn ==false ){
+    Random ();
+  }
 }
-boolean checkForStartButton()
-{
-  return digitalRead(PIN_STARTBUTTON) == HIGH;
+
+// Generate a random ammount of time to delay between the begining of the game intil the LED comes back on 
+void Random (){
+  Serial .println (" ");
+  Serial .println ("Get ready!");
+  randomTime =random (4 ,10 );
+  randomTime =randomTime *1000 ;
+  digitalWrite (ledPin ,HIGH );// Turn the game LED on and off to indicate a game is about to start 
+  delay (1000 );
+  digitalWrite (ledPin ,LOW );
+  delay (randomTime );
+  startGame ();
 }
-void readInputPins() {
- userButtonReadPins[0] = digitalRead(PIN_USER1BUTTON);
- userButtonReadPins[1] = digitalRead(PIN_USER2BUTTON);
- userButtonReadPins[2] = digitalRead(PIN_USER3BUTTON);
- userButtonReadPins[3] = digitalRead(PIN_USER4BUTTON);
-}
-void clearGameVars() {
-  for (int i = 0; i < NUM_USER_BUTTONS; i++) {
-    disqualifiedUsers[i] = 0;
-    winningUserTimes[i] = 0;
-    cumulativeScores[i] = 0;
-    if (i < (NUM_USER_BUTTONS-1)) {
-      orderedRunnerUpTimesBehindWinner[i] = -1;
-      orderedRunnerUpNames[i] = "";
+
+// Listen for the Player 1 and Player 2 buttons to be pressed 
+void startGame (){
+  gameOn =true ;// Declare a game currently running 
+  startTime =millis ();
+  digitalWrite (ledPin ,HIGH );// Turn on game LED indicating players should press their buttons as quickly as possible 
+  while (p1Done ==false ||p2Done ==false ){
+    buttonStateP1 =digitalRead (switchPin1 );
+    buttonStateP2 =digitalRead (switchPin2 );
+    // Listen for Player 1 button to be pressed and set Player 1 as done.
+    if (buttonStateP1 ==HIGH &&p1Done ==false ){
+      endTimeP1 =millis ();
+      p1Done =true ;     
+    }
+    // Listen for Player 2 button to be pressed and set Player 2 as done.
+    if (buttonStateP2 ==HIGH &&p2Done ==false ){
+      endTimeP2 =millis ();
+      p2Done =true ;  
     }
   }
-   runnerUpPosition = 0;
-   randomizedStartDelayInMillis = 0;
-   numberOfFinishers = 0;
-   goTimeMillis = 0;
-   winnerTimeMillis = 0;
-   gameOverTimeMillis = 0;
-   debugSerialPrintln("Game vars cleared");
-   turnOffAllPlayerLights();
+  endGame ();
 }
-void loop() {
-  //check for inputs that apply to any state
-  //new game pressed
-  //main logic.  change appropriate outputs depending on state, and/or transition to a new state if inputs result in it
-   switch (state) {
-    case STATE_WAITING_TO_START:
-      //if start pressed transitionToState
-      // otherwise check for trigger toggle
-      checkAdvanceTriggerType();
-      showScoreRecords();
-      if (checkForStartButton()) {
-        transitionToState(STATE_COUNTDOWN_TO_GO);
-      }
-      break;
-    case STATE_COUNTDOWN_TO_GO:
-        if (millis() > goTimeMillis) {
-          transitionToState(STATE_WAITING_FOR_WINNERS);
-        } else {
-          checkForEarlyPressersAndDQthem();
-          fadeLED(PIN_WAITFORIT_LED);
-        }
-      break;
-    case STATE_WAITING_FOR_WINNERS:
-      checkForWinnersUpdateStateIfAllUsersFinish();
-      if ((millis() - goTimeMillis) > MAX_WAIT_FOR_WINNERS_MILLIS) //we are done waiting
-      {
-        debugSerialPrintln("Done waiting for people to finish.  Game over.");
-        debugSerialPrintStringAndNumber("Record since boot: ",fastestTimeSinceBoot);
-        debugSerialPrintStringAndNumber("Fastest in eeprom: ",eepromsave.fastestTimeInEeprom);
-        transitionToState(STATE_GAMEOVER);
-      }
-      break;
-    case STATE_GAMEOVER:
-      if (millis() > (gameOverTimeMillis + SHOW_EACH_USER_SCORE_TIME_MILLIS*numberOfFinishers)) {
-        transitionToState(STATE_WAITING_TO_START);
-      }
-      if (checkForStartButton()) {
-        transitionToState(STATE_COUNTDOWN_TO_GO);
-      }
-      if (millis()%SHOW_EACH_USER_SCORE_TIME_MILLIS == 0) {
-        showUsersTimes();
-      }
-      break;
-   }
-}
-void transitionToState(int newState) {
-  debugSerialPrintStringAndNumber("Transitioning to state ",newState);
-  debugSerialPrintStringAndNumber("From state: ",state);
-  switch (newState) {
-    case STATE_WAITING_TO_START:
-      turnOffAllPlayerLights();
-      debugSerialPrintln("Press start button or go trigger toggle");
-      showDefaultStartInstructions();
-      break;
-    case STATE_COUNTDOWN_TO_GO:
-      clearGameVars();
-      setNewRandomStartDelay();
-      goTimeMillis = millis()+randomizedStartDelayInMillis;
-      setBothLCDLines("Wait for it . . .", " ", lcd);
-      break;
-    case STATE_WAITING_FOR_WINNERS:
-    setBothLCDLines("Go ! ! !", " ", lcd);
-      //write to LCD
-      turnOffFadeLED(PIN_WAITFORIT_LED);
-      if (goTriggerEnum == BOTH || goTriggerEnum == LIGHT) {
-        digitalWrite(PIN_GO_LED, HIGH);
-      }
-      break;
-    case STATE_GAMEOVER:
-      turnOffGoSignals(); //in case we had no winner
-      gameOverTimeMillis = millis();
-      break;
+
+void endGame (){
+  digitalWrite (ledPin ,LOW );// Turn off the game LED 
+  finalTimeP1 =(endTimeP1 -startTime );//Calculate how long it took Player to push their button 
+  finalTimeP2 =(endTimeP2 -startTime );//Calculate how long it took Player to push their button 
+  Serial .print ("P1 time:"); 
+  Serial .println (finalTimeP1 /1000 );// Display Player 1's final time in seconds 
+  Serial .print ("P2 time:");
+  Serial .println (finalTimeP2 /1000 );// Display Player 2's final time in seconds 
+
+  if (endTimeP1 <endTimeP2 ){// Run if Player 1 won the round 
+    digitalWrite (ledPinP1 ,HIGH );
+    winningTime =(endTimeP2 -startTime )-(endTimeP1 -startTime );
+    scoreP1 =scoreP1 +1 ;
+    Serial .print ("P1 won by:");
+    Serial .println (winningTime /1000 );
+    digitalWrite (ledPinP1 ,HIGH );
+    digitalWrite (ledPinP2 ,LOW );
   }
-  state = newState;
-}
-void showDefaultStartInstructions() {
-  setBothLCDLines("Press start --->", "<--- Signal type", lcd);
-}
-void showScoreRecords() {
-  if ( (millis() - lastTimeMillisForDisplayChangeRotation) > SHOW_EACH_RECORD_TIME_MILLIS) {
-    lastTimeMillisForDisplayChangeRotation = millis();
-    switch (currentRecordToShow) {
-      case NONE:
-        showDefaultStartInstructions();
-        if (fastestTimeSinceBoot < 0) {
-          currentRecordToShow = EEPROMSAVE;
-        } else {
-          currentRecordToShow = SINCEBOOT;
-        }
-        break;
-      case SINCEBOOT:
-        if (fastestTimeSinceBoot < 0) {
-          setBottomLine("No Record Yet   ", lcd);
-        } else {
-          setBothLCDLines("Best since boot:",getPlayerColourNameFromPosition(playerPositionHoldingFastestTime)+": "+fastestTimeSinceBoot+"ms" ,  lcd);
-        }
-        currentRecordToShow = EEPROMSAVE;
-        break;
-      case EEPROMSAVE:
-        String bestEver = String(eepromsave.fastestTimeInEeprom);
-        setBothLCDLines("Best time ever:",bestEver+"ms", lcd);
-        currentRecordToShow = NONE;
-      break;
-    }
+  else {
+    Serial .print ("P2 won by:");// Run if Player 2 won te round 
+    winningTime =(endTimeP1 -startTime )-(endTimeP2 -startTime );
+    scoreP2 =scoreP2 +1 ;
+    Serial .println (winningTime /1000 );
+    digitalWrite (ledPinP2 ,HIGH );
+    digitalWrite (ledPinP1 ,LOW );
   }
-}
-void checkAdvanceTriggerType()
-{
-  if(digitalRead(PIN_GOTRIGGERCYCLE) == HIGH && millis() > (lastTimeMillisForDisplayChangeRotation + 500))
-  {
-    lastTimeMillisForDisplayChangeRotation = millis();
-    debugSerialPrintStringAndNumber("Trigger type changing from ",goTriggerEnum);
-    lcd.clear();
-    setBottomLine("Press start --->", lcd);
-    switch (goTriggerEnum) {
-      case LIGHT:
-        goTriggerEnum = SOUND;
-        setTopLine("Sound Only", lcd);
-      break;
-      case SOUND:
-        goTriggerEnum = BOTH;
-        setTopLine("Light and Sound", lcd);
-      break;
-      case BOTH:
-        goTriggerEnum = LIGHT;
-        setTopLine("Light Only", lcd);
-      break;
-    }
-    debugSerialPrintStringAndNumber(" to ",goTriggerEnum);
-  }
-}
-void showUsersTimes() {
-  debugSerialPrintln("Showing runner up times");
-  int positionToShow = (millis()-gameOverTimeMillis)/SHOW_EACH_USER_SCORE_TIME_MILLIS;
-  if (positionToShow < runnerUpPosition)
-  {
-    setBothLCDLines("Finisher "+(String)(positionToShow+2), orderedRunnerUpNames[positionToShow]+": -"+orderedRunnerUpTimesBehindWinner[positionToShow]+"ms", lcd);
-  }
-}
-void checkForEarlyPressersAndDQthem() {
-    readInputPins();
-    for (int i = 0; i < NUM_USER_BUTTONS; i++) {
-      if (userButtonReadPins[i] > 0 && !disqualifiedUsers[i])
-      {
-        int pressedButton = i;
-        disqualifiedUsers[pressedButton] = true;
-        debugSerialPrintStringAndNumber("Disqualified User ",pressedButton);
-        setBothLCDLines(getPlayerColourNameFromPosition(pressedButton),"Disqualified", lcd);
-      }
-    }
-  }
-void checkForWinnersUpdateStateIfAllUsersFinish() {
-  if (numberOfFinishers < NUM_USER_BUTTONS) {
-    readInputPins();
-    for (int i = 0; i < NUM_USER_BUTTONS; i++) {
-      if (userButtonReadPins[i] > 0 && winningUserTimes[i] == 0 && !disqualifiedUsers[i])
-      {
-        int pressedButton = i;
-        winningUserTimes[pressedButton] = millis();
-        if (numberOfFinishers == 0)
-        {
-          winnerTimeMillis = millis();
-          long winnerReactionTime = winnerTimeMillis - goTimeMillis;
-          boolean newRecordSinceBoot = checkAndUpdateFastestTimesAcrossGames(pressedButton, winnerReactionTime);
-          String newRecord = "";
-          if (newRecordSinceBoot) {
-            newRecord = "New Best!";
-            checkAndUpdateFastestTimesInEEPROM(pressedButton, winnerReactionTime);
-          }
-          setBothLCDLines(getPlayerColourNameFromPosition(pressedButton)+" Wins!", (String)winnerReactionTime+"ms "+newRecord,  lcd);
-          debugSerialPrintStringAndNumber("Winner!  Button ",pressedButton);
-          debugSerialPrintStringAndNumber("Time after signal: ",winnerReactionTime);
-          cumulativeScores[i]++;
-          //turn off go signals
-          turnOffGoSignals();
-          turnOnWinLightForPlayer(pressedButton);
-        } else {
-          debugSerialPrintStringAndNumber("Runner up, button ",pressedButton);
-          debugSerialPrintStringAndNumber("Position: ",numberOfFinishers+1);
-          long runnerUpTimeBehindWinner = millis() - winnerTimeMillis;
-          orderedRunnerUpTimesBehindWinner[runnerUpPosition] = runnerUpTimeBehindWinner;
-          orderedRunnerUpNames[runnerUpPosition] = getPlayerColourNameFromPosition(pressedButton);
-          runnerUpPosition++;
-          debugSerialPrintStringAndNumber("ms behind winner: ",runnerUpTimeBehindWinner);
-        }
-        numberOfFinishers++;
-      }
-    }
-  } else {
-    debugSerialPrintln("Everyone done.  Game over.");
-  //  transitionToState(STATE_GAMEOVER);
-  }
-}
-void turnOffGoSignals(){
-  digitalWrite(PIN_GO_LED, LOW);
-}
-String getPlayerColourNameFromPosition(int position) {
-  switch (position) {
-    case 0: return "Blue"; break;
-    case 1: return "Green"; break;
-    case 2: return "Red"; break;
-    case 3: return "Yellow"; break;
-  }
-}
-boolean checkAndUpdateFastestTimesAcrossGames(int pressedButton, long winnerReactionTimeMillis) {
-  if ( (fastestTimeSinceBoot < 0) || (winnerReactionTimeMillis < fastestTimeSinceBoot) ) {
-    fastestTimeSinceBoot = winnerReactionTimeMillis;
-    playerPositionHoldingFastestTime = pressedButton;
-    return true;
-  } else {
-    return false;
-  }
-}
-boolean checkAndUpdateFastestTimesInEEPROM(int pressedButton, long winnerReactionTimeMillis) {
-  if ( (eepromsave.fastestTimeInEeprom < 0) || (winnerReactionTimeMillis < eepromsave.fastestTimeInEeprom) ) {
-    eepromsave.fastestTimeInEeprom = int(winnerReactionTimeMillis);
-    EEPROM_writeAnything(EEPROM_SAVELOCATION, eepromsave);
-    debugSerialPrintStringAndNumber("New fastest time saved to eeprom: ",eepromsave.fastestTimeInEeprom);
-    return true;
-  } else {
-    return false;
-  }
+  delay (5000 );
+  digitalWrite (ledPinP1 ,LOW );// Turn of Player 1's LED 
+  digitalWrite (ledPinP2 ,LOW );// Turn of Player 2's LED 
+  
+  // Reset all variables to restart the game 
+  buttonStateP1 =0 ;
+  buttonStateP2 =0 ; 
+  lastButtonStateP1 =0 ; 
+  lastButtonStateP2 =0 ; 
+  bothDone =false ;
+  gameOn =false ;
+  startButtonState =LOW ;
+  p1Done =false ;
+  p2Done =false ;
+  randomTime =0 ;
+  startTime =0 ;
+  endTimeP1 =0 ;
+  endTimeP2 =0 ;
+  finalTimeP1 =0 ;
+  finalTimeP2 =0 ;
+  winningTime =0 ;
+  welcomeMsg =false ;
+
 }
