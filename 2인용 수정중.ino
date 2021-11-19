@@ -19,14 +19,14 @@ boolean p1Done =false ;// 플레이어 1의 단추 누르기 추적
 boolean p2Done =false ;// 플레이어 2의 단추 누르기 추적 
 boolean welcomeMsg =false ;// 시작 메시지가 이미 표시된 경우 추적
 
-long randomTime ;// 게임 시작 후 표시등이 다시 켜질 때까지 임의의 시간을 유지합니다. 
-long startTime ;// 그 게임은 언제 시작되었나요?t 
-long endTimeP1 ;// 플레이어 1은 언제 그들의 버튼을 눌렀습니까? 
-long endTimeP2 ;// 플레이어 2는 언제 버튼을 눌렀습니까? 
+int randomTime ;// 게임 시작 후 표시등이 다시 켜질 때까지 임의의 시간을 유지합니다. 
+int startTime ;// 그 게임은 언제 시작되었나요?t 
+int endTimeP1 ;// 플레이어 1은 언제 그들의 버튼을 눌렀습니까? 
+int endTimeP2 ;// 플레이어 2는 언제 버튼을 눌렀습니까? 
 
-float finalTimeP1 ;// 게임 시작 후 플레이어 1이 버튼을 누를 때까지 경과한 시간 
-float finalTimeP2 ;// 게임 시작 후 플레이어 2가 버튼을 누를 때까지 경과한 시간 
-float winningTime ;// 승자와 패자 사이의 시간 
+int finalTimeP1 ;// 게임 시작 후 플레이어 1이 버튼을 누를 때까지 경과한 시간 
+int finalTimeP2 ;// 게임 시작 후 플레이어 2가 버튼을 누를 때까지 경과한 시간 
+int winningTime ;// 승자와 패자 사이의 시간 
 
 void setup ()
 {
@@ -44,8 +44,8 @@ void loop (){
     Serial .println (" ");
     Serial .println ("Press the start button to begin");
     Serial .println ("Scoreboard:");
-    Serial .print ("Player 1 - ");
-    Serial .println (scoreP1 );
+    Serial .print ("Player 1 - - - Player 2");
+    Serial .println (scoreP1, scoreP2 );
     Serial .print ("Player 2 - ");
     Serial .println (scoreP2 );
     welcomeMsg =true ;
@@ -97,25 +97,27 @@ void endGame (){
   digitalWrite (ledPin ,LOW );// 게임 LED 끄기
   finalTimeP1 =(endTimeP1 -startTime );//플레이어에서 버튼을 누르는 데 걸린 시간 계산 
   finalTimeP2 =(endTimeP2 -startTime );//플레이어에서 버튼을 누르는 데 걸린 시간 계산
-  Serial .print ("P1 time:"); 
+  Serial .print ("P1 :"); 
   Serial .println (finalTimeP1);// 플레이어 1의 마지막 시간(초) 표시 
-  Serial .print ("P2 time:");
+  Serial .print ("P2:");
   Serial .println (finalTimeP2);// Display Player 2's final time in seconds 
 
   if (endTimeP1 <endTimeP2 ){// Run if Player 1 won the round 
     digitalWrite (ledPinP1 ,HIGH );
-    winningTime =(endTimeP2 -startTime )-(endTimeP1 -startTime );
+    Serial .print("Player 1 win!!");
+    Serial .println (" ");
+    Serial .print(finalTimeP1);
+    Serial .print("ms");
     scoreP1 =scoreP1 +1 ;
-    Serial .print ("P1 won by:");
-    Serial .println (winningTime);
     digitalWrite (ledPinP1 ,HIGH );
     digitalWrite (ledPinP2 ,LOW );
   }
   else {
-    Serial .print ("P2 won by:");// Run if Player 2 won te round 
-    winningTime =(endTimeP1 -startTime )-(endTimeP2 -startTime );
     scoreP2 =scoreP2 +1 ;
-    Serial .println (winningTime);
+    Serial .print("Player 2 win!!");
+    Serial .println (" ");
+    Serial .print(finalTimeP2);
+    Serial .print("ms");
     digitalWrite (ledPinP2 ,HIGH );
     digitalWrite (ledPinP1 ,LOW );
   }
