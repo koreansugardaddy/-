@@ -1,10 +1,17 @@
-const int switchPin1 =6 ;//Player 1 button 
-const int switchPin2 =7 ;//Player 2 button 
+#include <SPI.h>  
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+
+Adafruit_SSD1306 lcd(128, 64, &Wire, 4);
+
+const int btnOk =6 ;//Player 1 button 
+const int btnBack =7 ;//Player 2 button 
 
 int switchStart =1 ;//Start button 
-int ledPin =10 ;//Game start LED 
-int ledPinP1 =9 ;//Player 1 win indicator 
-int ledPinP2 =8 ;//Player 2 win indicator 
+int green =10 ;//Game start LED 
+int red =9 ;//Player 1 win indicator 
+int blue =11 ;//Player 2 win indicator 
 int buttonStateP1 =0 ;//Player 1 button tracking 
 int buttonStateP2 =0 ;//Player 2 button tracking 
 int lastButtonStateP1 =0 ;// Player 1 last button state (used to detect a button press)
@@ -30,24 +37,26 @@ int winningTime ;// 승자와 패자 사이의 시간
 
 void setup ()
 {
-  pinMode (switchPin1 ,INPUT );
-  pinMode (switchPin2 ,INPUT );
-  pinMode (ledPin ,OUTPUT );// 게임 시작 LED
-  pinMode (ledPinP1 ,OUTPUT );// Player 1 win LED 
-  pinMode (ledPinP2 ,OUTPUT );// Player 1 win LED 
-  Serial .begin (9600 );
+  pinMode (btnOk ,INPUT );
+  pinMode (btnBack ,INPUT );
+  pinMode (green ,OUTPUT );// 게임 시작 LED
+  pinMode (red ,OUTPUT );// Player 1 win LED 
+  pinMode (blue ,OUTPUT );// Player 1 win LED 
+  Serial.begin(115200);
+  lcd.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  lcd.clearDisplay();
 }
 
 void loop (){
   // 현재 플레이어의 점수인 시작 메시지를 인쇄하고 시작 메시지가 표시되도록 설정합니다. 
   if (welcomeMsg ==false ){
-    Serial .println (" ");
-    Serial .println ("Press the start button to begin");
-    Serial .println ("Scoreboard");
-    Serial .print ("1 Player - ");
-    Serial .println (scoreP1);
-    Serial .print ("2 Player - ");
-    Serial .println (scoreP2);
+    lcd.println (" ");
+    lcd.println ("Press the start button to begin");
+    lcd.println ("Scoreboard");
+    lcd.println ("1 Player - ");
+    lcd.println (scoreP1);
+    lcd.println ("2 Player - ");
+    lcd.println (scoreP2);
     welcomeMsg =true ;
   } 
   startButtonState =digitalRead (switchStart );// 시작 버튼을 누를 때까지 듣습니다.
@@ -60,8 +69,8 @@ void loop (){
 
 // LED가 다시 켜지는 동안 게임 시작 간 지연 시간을 임의로 생성합니다.
 void Random (){
-  Serial .println (" ");
-  Serial .println ("Get ready!");
+  lcd.println (" ");
+  lcd.println ("Get ready!");
   randomTime =random (4 ,10 );
   randomTime =randomTime *1000 ;
   digitalWrite (ledPin ,HIGH );// 게임 LED를 켜고 끄면 게임이 시작됨을 알 수 있습니다. 
@@ -94,7 +103,7 @@ void startGame (){
 }
 
 void endGame (){
-  digitalWrite (ledPin ,LOW );// 게임 LED 끄기
+  digitalWrite (green ,LOW );// 게임 LED 끄기
   finalTimeP1 =(endTimeP1 -startTime );//플레이어에서 버튼을 누르는 데 걸린 시간 계산 
   finalTimeP2 =(endTimeP2 -startTime );//플레이어에서 버튼을 누르는 데 걸린 시간 계산
 
@@ -103,27 +112,27 @@ void endGame (){
 // Display Player 2's final time in seconds 
 
   if (endTimeP1 <endTimeP2 ){// Run if Player 1 won the round 
-    digitalWrite (ledPinP1 ,HIGH );
+    digitalWrite (red ,HIGH );
     scoreP1 =scoreP1 +1 ;
-    Serial .print("Player 1 win!!");
-    Serial .println(" ");
-    Serial .print(finalTimeP1);
-    Serial .print(" ms");
-    digitalWrite (ledPinP1 ,HIGH );
-    digitalWrite (ledPinP2 ,LOW );
+    lcd.println("Player 1 win!!");
+    lcd.println(" ");
+    lcd.println(finalTimeP1);
+    lcd.println(" ms");
+    digitalWrite (red ,HIGH );
+    digitalWrite (blue ,LOW );
   }
   else {
     scoreP2 =scoreP2 +1 ;
-    Serial .print("Player 2 win!!");
-    Serial .println (" ");
-    Serial .print(finalTimeP2);
-    Serial .print(" ms");
-    digitalWrite (ledPinP2 ,HIGH );
-    digitalWrite (ledPinP1 ,LOW );
+    lcd.println("Player 2 win!!");
+    lcd.println (" ");
+    lcd.println(finalTimeP2);
+    lcd.println(" ms");
+    digitalWrite (blue ,HIGH );
+    digitalWrite (red ,LOW );
   }
   delay (5000 );
-  digitalWrite (ledPinP1 ,LOW );// Turn of Player 1's LED 
-  digitalWrite (ledPinP2 ,LOW );// Turn of Player 2's LED 
+  digitalWrite (red ,LOW );// Turn of Player 1's LED 
+  digitalWrite (blue ,LOW );// Turn of Player 2's LED 
   
   // Reset all variables to restart the game 
   buttonStateP1 =0 ;
