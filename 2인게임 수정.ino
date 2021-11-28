@@ -7,8 +7,8 @@
 Adafruit_SSD1306 lcd(128, 64, &Wire, 4);
 
 #define btnUp   4
-#define btnOk   6
 #define btnDown 5
+#define btnOk   6
 #define btnBack 7
 int startTime1 = 0;
 int startTime2 = 0;//시작 및 종료 시간에 대한 변수 정의
