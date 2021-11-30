@@ -386,15 +386,15 @@ void tampil() {
       endTime1 = millis();                     //버튼 누름 시간을 기록합니다.
       digitalWrite(blue, LOW);              //LED 끄기
       int totalTime1 = endTime1 - startTime1;    //총 응답 시간 계산
-      lcd.clearDisplay();//결과 표시
       startTime2 = millis();
       while(digitalRead(btnBack) == HIGH)
       {    
+        
       }
       endTime2 = millis();                     //버튼 누름 시간을 기록합니다.
       digitalWrite(blue, LOW);              //LED 끄기
       int totalTime2 = endTime2 - startTime2;
-        if (totalTime1 <= 20)                    //버튼을 눌러 부정행위를 확인합니다.
+        if (totalTime1 <= 20  && totalTime2 <= 20)                    //버튼을 눌러 부정행위를 확인합니다.
         {
           lcd.setCursor(25,20);
           lcd.println(F("Don't Hold The"));
