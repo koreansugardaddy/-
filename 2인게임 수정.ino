@@ -401,14 +401,21 @@ void tampil() {
           lcd.setCursor(20,30);
           lcd.print(F("Button Down"));
         }
-        else if(totalTime2 <= 20)                                  //결과 표시
+        else if(totalTime2 <= totalTime1)                                  //결과 표시
         {
           lcd.setCursor(30,20);
           lcd.println(F("Your Time:"));
           lcd.setCursor(45,30);
-          lcd.print(totalTime1);
+          lcd.print(totalTime2);
           lcd.print(F("ms"));
-          {
+        }
+        else if(totalTime1 <= totalTime2)
+        {
+          lcd.setCursor(30,20);
+          lcd.println(F("Your Time:"));
+          lcd.setCursor(45,30);
+          lcd.print(totalTime2);
+          lcd.print(F("ms"));
           }
       }
       lcd.display();
