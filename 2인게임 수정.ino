@@ -360,8 +360,8 @@ void tampil() {
   lcd.setTextColor(SSD1306_WHITE);        //흰색 텍스트 그리기
   lcd.setCursor(25,20);                    //왼쪽 상단 모서리에서 시작, 25픽셀
   lcd.println(F("Press To Play"));        //화면에 텍스트 표시
-  lcd.display();                          //표시 업데이트
-  if (digitalRead(btnOk) == LOW)//게임 시작 버튼을 누르면
+  lcd.display();                           //표시 업데이트
+  if (digitalRead(btnOk) == LOW || digitalRead(btnBack) == LOW)          //게임 시작 버튼을 누르면
   {
       lcd.setCursor(50,30);               //3개의 순차적 점으로 "Ready" 카운트다운 표시
       lcd.print(F("Ready"));
@@ -387,6 +387,7 @@ void tampil() {
       digitalWrite(blue, LOW);              //LED 끄기
       int totalTime1 = endTime1 - startTime1;    //총 응답 시간 계산
       lcd.clearDisplay();//결과 표시
+      startTime2 = millis();
       while(digitalRead(btnBack) == HIGH)
       {    
       }
