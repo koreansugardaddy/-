@@ -6,26 +6,26 @@
 // Voltage Reference: AREF pin
 #define ADC_VREF_TYPE ((0<<REFS1) | (0<<REFS0) | (0<<ADLAR))
 
-int count = 0;  //  a counter for counting seconds 
+int count = 0;  //  초를 세기 위한 카운터
 int count2 = 0;
-int h = 0, m = 0, s = 0;   //  Current time storage variable
-int ah = 0, am = 0; // Alarm Setting Variables
-int alarm_enable = 0;  // Performing an alarm enable
-int timer_alarm_enable = 0;   //  Performing a timer alarm enable
-char data[10] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x27, 0x7f, 0x67};  //  Segment Numbers
-char point_data[10] = {0xbf, 0x86, 0xdb, 0xcf, 0xe6, 0xed, 0xfd, 0xa7, 0xff, 0xe7}; // "Numbers."
-int segment_enable = 0;  //  Run Segment enable
-int digit = 0;            // Variables for specifying segment values
-int num1 = 0, num10 = 0, num100 = 0, num1000 = 0;     // Variables for Segmented Numeric Output
-int tm = 0, ts = 0;  // Timer Setting Variables 1 
-int t1 = 0, t10 = 0, t100 = 0, t1000 = 0;  //  Timer Setting Variables 2 
-float temp;  //  Variable to receive value with variable resistance
-int alarm_power;  //  The value of the strength of the alarm that you received and stored data with a variable resistor 
-int power_enable = 0;  // Set the alarm power enable
-int alarm_setting_enable = 0, timer_setting_enable = 0;  //  Alarm, timer setting enable
-int light = 0;    //  Variable that tells you the current backlight status
+int h = 0, m = 0, s = 0;   //  현재시간 저장 변수
+int ah = 0, am = 0; // 알람세팅 변수
+int alarm_enable = 0;  // 알람 수행 enable
+int timer_alarm_enable = 0;   //  타이머 알람 수행 enable
+char data[10] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x27, 0x7f, 0x67};  //  세그먼트 숫자
+char point_data[10] = {0xbf, 0x86, 0xdb, 0xcf, 0xe6, 0xed, 0xfd, 0xa7, 0xff, 0xe7}; // "숫자."
+int segment_enable = 0;  //  세그먼트 실행 enable
+int digit = 0;            // 세그먼트 값 지정을 위한 변수
+int num1 = 0, num10 = 0, num100 = 0, num1000 = 0;     // 세그먼트 숫자 출력을 위한 변수
+int tm = 0, ts = 0;  // 타이머 세팅 변수 1
+int t1 = 0, t10 = 0, t100 = 0, t1000 = 0;  //  타이머 세팅 변수 2
+float temp;  //  가변저항으로 값 받기위한 변수
+int alarm_power;  //  가변저항으로 데이터를 받아서 저장한 알람의 세기값
+int power_enable = 0;  // 알람파워를 설정하는 enable
+int alarm_setting_enable = 0, timer_setting_enable = 0;  //  알람, 타이머 세팅 enable
+int light = 0;    //  현재 백라이트 상태를 알려주는 변수
 
-// ADC setting
+// ADC 설정
 unsigned int read_adc(unsigned char adc_input)
 {
 ADMUX=adc_input | ADC_VREF_TYPE;
