@@ -4,8 +4,8 @@
  *
  */
 
-#include <mega128.h>
-#include <stdio.h>
+#include <xc.h>
+//#include <stdio.h>
 #include <delay.h>
 // Voltage Reference: AREF pin
 #define ADC_VREF_TYPE ((0<<REFS1) | (0<<REFS0) | (0<<ADLAR))
